@@ -94,10 +94,6 @@ Rectangle::Rectangle(float x, float y, bool isDynamic, PhysicalWorld & world, fl
 
 	//Fixture
 	b2PolygonShape rectangleBox;
-
-	std::cout << "width = " << width << ", x = " << x << "\n";
-	std::cout << "offset x = " << x + (width / 2) << "\n";
-	std::cout << "World center x = " << meter2pixel(body->GetWorldCenter()).x << "\n";
 	rectangleBox.SetAsBox(pixel2meter(width/2.f), pixel2meter(height / 2.f), pixel2meter(sf::Vector2f(width/2, height/2)), 0.f);
 	body->CreateFixture(&rectangleBox, 0.f);
 }
