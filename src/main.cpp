@@ -1,67 +1,54 @@
 #include <SFML/Graphics.hpp>
 #include <iostream>
-
 #include <Box2D/Box2D.h>
 #include "PhysicalShape.h"
+#include "PhysicalWorld.h"
+#include <string>
+#include <fstream>
+#include <json.hpp>
+using json = nlohmann::json;
+
+#define CIRCLE_RADIUS 50
+#define RECT_WIDTH 100
+#define RECT_HEIGHT 100
 
 int main() {
 
-	b2Vec2 gravity(0.f, 0.f); //normal earth gravity, 9.8 m/s/s straight down!
+	std::ifstream file("../data/SFML_data.json");
 
-	b2World* myWorld = new b2World(gravity);
-	
-	sf::RenderWindow window(sf::VideoMode(500, 500), "SFML works!");
-	window.setFramerateLimit(60.f);
+	if (!file) {
+		std::cout << "Fichier introuvable. Fin du programme\n";
+		system("pause");
+		return EXIT_FAILURE;
+	}
 
-	float32 timeStep = 1 / 60.0;     //the length of time passed to simulate (seconds)
-	int32 velocityIterations = 8;   //how strongly to correct velocity
-	int32 positionIterations = 3;   //how strongly to correct position
+	json j;
+	file >> j;
 
-	//Circle
-	sf::CircleShape circle(50.f);
+	//SFML - Initialise window
+	sf::RenderWindow window(sf::VideoMode(j["width"], j["height"]), "Exercice 2.1");
+	window.setFramerateLimit((float)j["framerate"]);
+
+	//Box2D - Initialise world
+	b2Vec2 gravity(j["gravity"], j["gravity"]); //normal earth gravity, 9.8 m/s/s straight down!
+	PhysicalWorld myWorld(gravity, j["Box2D"]["scale"]);
+
+	float32 timeStep = 1 / (float)j["Box2D"]["framerate"];     //the length of time passed to simulate (seconds)
+	int32 velocityIterations = j["Box2D"]["velocity"];   //how strongly to correct velocity
+	int32 positionIterations = j["Box2D"]["position"];   //how strongly to correct position
+
+	//Initialise both shape
+	Circle circle(50, 50, true, myWorld, CIRCLE_RADIUS);
+	Rectangle rectangle(window.getSize().x / 2 - RECT_WIDTH/2, window.getSize().y / 2 - RECT_HEIGHT/2, false, myWorld, RECT_WIDTH, RECT_HEIGHT);
 	circle.setFillColor(sf::Color::Green);
-
-	Circle circleNew(0, 0, true, *myWorld, circle);
-	
-	/*b2CircleShape circleShape;
-	circleShape.m_p.Set(circle.getPosition().x, circle.getPosition().y);
-	circleShape.m_radius = 50.f;
-
-	b2BodyDef circleDef;
-	circleDef.type = b2_dynamicBody;
-	circleDef.position.Set(0.0f, 4.0f);
-	b2Body* circleBody = myWorld->CreateBody(&circleDef);
-	
-	b2FixtureDef fixtureDef;
-	fixtureDef.shape = &circleShape;
-	fixtureDef.density = 1.0f;
-	fixtureDef.friction = 0.3f;
-
-	circleBody->CreateFixture(&fixtureDef); */
-	
-	//Rect
-	sf::RectangleShape rectangle(sf::Vector2f(100, 100));
 	rectangle.setFillColor(sf::Color::Blue);
-	rectangle.setPosition(window.getSize().x/2 - rectangle.getSize().x/2, window.getSize().y/2 - rectangle.getSize().y/2);
 
-	b2BodyDef rectangleBodyDef;
-	rectangleBodyDef.position.Set(rectangle.getPosition().x, rectangle.getPosition().y);
-	rectangleBodyDef.type = b2_staticBody;
-
-	b2Body* rectangleBody = myWorld->CreateBody(&rectangleBodyDef);
-	b2PolygonShape rectangleBox;
-	rectangleBox.SetAsBox(50.f, 50.f);
-	rectangleBody->CreateFixture(&rectangleBox, 0.0f);
-
-
-	float speed = 5.0f;
+	float speed = j["speed"];
 	bool goingUp = false, goingDown = false, goingLeft = false, goingRight = false;
-	while (window.isOpen())
-	{
-		myWorld->Step(timeStep, velocityIterations, positionIterations);
+	while (window.isOpen()) {
+		myWorld.getWorld()->Step(timeStep, velocityIterations, positionIterations);
 		sf::Event event;
-		while (window.pollEvent(event))
-		{
+		while (window.pollEvent(event)) {
 			switch (event.type) {
 			case sf::Event::Closed:
 				window.close();
@@ -113,40 +100,42 @@ int main() {
 			}
 		}
 		
+		//Move circle
 		int velY = 0, velX = 0;
-		if (goingUp && circleNew.getCircleBody()->GetPosition().y > 0) {
-			std::cout << "up\n";
-			std::cout << circleNew.getShape().getPosition().y << "\n";
-			velY = -1000;
-		}else if (goingDown && circleNew.getCircleBody()->GetPosition().y < window.getSize().y - 2* circleNew.getCircleBody()->GetFixtureList()->GetShape()->m_radius) {
-			velY = 1000;
+		if (goingUp && circle.getShape().getPosition().y > 0) {
+			velY = -1;
+		}else if (goingDown && circle.getShape().getPosition().y < window.getSize().y - 2 * circle.getShape().getRadius()) {
+			velY = 1;
 		}
 
-		if (goingLeft && circleNew.getCircleBody()->GetPosition().x > 0) {
-			velX = -1000;
-		}else if (goingRight && circleNew.getCircleBody()->GetPosition().x < window.getSize().x - 2 * circleNew.getCircleBody()->GetFixtureList()->GetShape()->m_radius) {
-			velX = 1000;
+		if (goingLeft && circle.getShape().getPosition().x > 0) {
+			velX = -1;
+		}else if (goingRight && circle.getShape().getPosition().x < window.getSize().x - 2 * circle.getShape().getRadius()) {
+			velX = 1;
 		}
-		
-		if (myWorld->GetContactList()) {
-			circleNew.getShape().setFillColor(sf::Color::Red);
-			rectangle.setFillColor(sf::Color::Red);
-		} else {
-			circleNew.getShape().setFillColor(sf::Color::Green);
-			rectangle.setFillColor(sf::Color::Blue);
-		}
-		circleNew.getCircleBody()->SetLinearVelocity(b2Vec2(velX, velY));
-		circleNew.getShape().setPosition(circleNew.getCircleBody()->GetPosition().x, circleNew.getCircleBody()->GetPosition().y);
-		rectangle.setPosition(rectangleBody->GetPosition().x, rectangleBody->GetPosition().y);
+		circle.getBody()->SetLinearVelocity(b2Vec2(velX * speed, velY * speed));
 
+		//Check contact
+		if (myWorld.getWorld()->GetContactList()) {
+			b2Contact* contact = myWorld.getWorld()->GetContactList();
+			if (contact->IsTouching()) {
+				circle.setFillColor(sf::Color::Red);
+				rectangle.setFillColor(sf::Color::Red);
+			}else{
+				circle.setFillColor(sf::Color::Green);
+				rectangle.setFillColor(sf::Color::Blue);
+			}
+		}
+
+		//Clear - Draw - Display
 		window.clear();
-		circleNew.draw(window);
-		//window.draw(circleNew.getShape());
-		window.draw(rectangle);
+		circle.draw(window);
+		rectangle.draw(window);
 		window.display();
 	}
-	delete myWorld;
+
+	//delete myWorld;
 
 	system("pause");
-	return 0;
+	return EXIT_SUCCESS;
 }
