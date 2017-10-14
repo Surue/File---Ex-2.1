@@ -1,0 +1,16 @@
+{
+ "Box2D" : {
+	"gravity" : 0,
+	"framerate" : 60,
+	"velocity" : 8,
+	"position" : 3,
+	"scale" : 64
+ },
+ "width" : 500,
+ "height" : 500,
+ "framerate" : 60,
+ "gravity" : 0,
+ "velocity" : 8,
+ "position" : 3,
+ "speed" : 5
+}
