@@ -11,9 +11,16 @@ using json = nlohmann::json;
 #define CIRCLE_RADIUS 50
 #define RECT_WIDTH 100
 #define RECT_HEIGHT 100
+#include <experimental/filesystem>
 
+namespace fs = std::experimental::filesystem;
 
 int main() {
+	fs::path p = fs::current_path();
+
+	std::cout << "The current path " << p << " decomposes into:\n"
+		<< "root-path " << p.root_path() << '\n'
+		<< "relative path " << p.relative_path() << '\n';
 	std::ifstream file("data/SFML_data.json");
 
 	if (!file) {
