@@ -12,9 +12,9 @@ using json = nlohmann::json;
 #define RECT_WIDTH 100
 #define RECT_HEIGHT 100
 
-int main() {
 
-	std::ifstream file("../data/SFML_data.json");
+int main() {
+	std::ifstream file("data/SFML_data.json");
 
 	if (!file) {
 		std::cout << "Fichier introuvable. Fin du programme\n";
